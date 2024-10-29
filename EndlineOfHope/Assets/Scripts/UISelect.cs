@@ -10,7 +10,11 @@ using UnityEngine.UI;
 
 public class UISelect : MonoBehaviour {
 
-    enum Buttons {
+    const int   BUTTON_INDEX    = 3;
+    const float SELECT_SIZE     = 1.2f;
+    const float EFFECT_DURATION = 0.2f;
+
+    enum ButtonIndex {
 
         NONE = -1,
         START,
@@ -19,58 +23,57 @@ public class UISelect : MonoBehaviour {
         COUNT
 
     };
-    [SerializeField] GameObject[] buttons = new GameObject[3];
-    TMP_Text[] texts = new TMP_Text[3];
-
-    const float SELECT_SIZE = 1.2f;
-    const float EFFECT_DURATION = 0.2f;
+    [SerializeField] GameObject[] buttons = new GameObject[BUTTON_INDEX];
+    TMP_Text[] texts = new TMP_Text[BUTTON_INDEX];
+    GameObject[] textsObject = new GameObject[BUTTON_INDEX];
 
     const KeyCode indexUp       = KeyCode.UpArrow;
     const KeyCode indexDown     = KeyCode.DownArrow;
     const Ease    MOVEMENT_TYPE = Ease.OutSine;
 
-    Buttons select = Buttons.START;
+    ButtonIndex select = ButtonIndex.START;
 
     Tween currentEffect;
-    Buttons beforeEffectTarget = Buttons.NONE;
+    Vector2 beforeScale;
+    ButtonIndex beforeEffectTarget = ButtonIndex.NONE;
 
     void UneffectSelect() {
 
-        if (beforeEffectTarget == Buttons.NONE)
+        if (beforeEffectTarget == ButtonIndex.NONE)
             return;
 
-        var target = buttons[Convert.ToInt32(beforeEffectTarget)];
+        var target = textsObject[Convert.ToInt32(beforeEffectTarget)];
         var color = texts[Convert.ToInt32(beforeEffectTarget)];
 
         currentEffect.Kill();
-        target.transform.DOScale(1 / SELECT_SIZE, 0);
+        target.transform.DOScale(beforeScale, 0);
         color.color = Color.white;
 
     }
 
-    void EffectSelect(Buttons select) {
+    void EffectSelect(ButtonIndex select) {
 
-        if (select == Buttons.NONE) {
+        if (select == ButtonIndex.NONE) {
 
             return;
         }
 
-        GameObject target = buttons[Convert.ToInt32(select)];
-
         UneffectSelect();
 
+        GameObject target = textsObject[Convert.ToInt32(select)];
+        
         beforeEffectTarget = select;
-
-        currentEffect = target.transform.DOScale(SELECT_SIZE, EFFECT_DURATION).SetEase(MOVEMENT_TYPE);
-
+        beforeScale = target.transform.localScale;
+        currentEffect = target.transform.DOScale(beforeScale * SELECT_SIZE, EFFECT_DURATION).SetEase(MOVEMENT_TYPE);
         texts[Convert.ToInt32(select)].color = Color.red;
 
     }
 
-    Buttons CheckInput() {
+    ButtonIndex CheckInput() {
+
         if (Input.GetKeyDown(indexDown)) {
 
-            var temp = (Buttons)(Convert.ToInt32(select + 1) % Convert.ToInt32(Buttons.COUNT));
+            var temp = (ButtonIndex)(Convert.ToInt32(select + 1) % Convert.ToInt32(ButtonIndex.COUNT));
 
             select = temp;
 
@@ -79,29 +82,28 @@ public class UISelect : MonoBehaviour {
 
         if (Input.GetKeyDown(indexUp)) {
 
-            currentEffect.Kill();
-
             var temp = Convert.ToInt32(select - 1);
 
             if (temp == -1) {
-                select = Buttons.COUNT - 1;
+                select = ButtonIndex.COUNT - 1;
             }
 
             else {
-                select = (Buttons)temp;
+                select = (ButtonIndex)temp;
             }
 
             return select;
         }
 
-        return Buttons.NONE;
+        return ButtonIndex.NONE;
     }
 
     private void Awake() {
         
         for(int i = 0, size = buttons.Length; i < size; i++) {
 
-            texts[i] = buttons[i].GetComponent<TMP_Text>();
+            texts[i] = buttons[i].GetComponentInChildren<TMP_Text>();
+            textsObject[i] = buttons[i].transform.GetChild(0).gameObject;
         }
     }
 
