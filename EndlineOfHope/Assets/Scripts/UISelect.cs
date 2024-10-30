@@ -15,6 +15,9 @@ public class UISelect : MonoBehaviour {
     const float SELECT_SIZE     = 1.2f;
     const float EFFECT_DURATION = 0.2f;
 
+    readonly Color disableColor = new Color(0.62f, 0.62f, 0.62f);
+    readonly Color EnableColor  = Color.white;
+
     [SerializeField] GameObject[] buttons = new GameObject[BUTTON_INDEX];
     TMP_Text[] texts = new TMP_Text[BUTTON_INDEX];
     GameObject[] textsObject = new GameObject[BUTTON_INDEX];
@@ -39,7 +42,7 @@ public class UISelect : MonoBehaviour {
 
         currentEffect.Kill();
         target.transform.DOScale(beforeScale, 0);
-        color.color = Color.white;
+        color.color = disableColor;
 
     }
 
@@ -57,7 +60,7 @@ public class UISelect : MonoBehaviour {
         beforeEffectTarget = select;
         beforeScale = target.transform.localScale;
         currentEffect = target.transform.DOScale(beforeScale * SELECT_SIZE, EFFECT_DURATION).SetEase(MOVEMENT_TYPE);
-        texts[Convert.ToInt32(select)].color = Color.red;
+        texts[Convert.ToInt32(select)].color = EnableColor;
 
     }
 
