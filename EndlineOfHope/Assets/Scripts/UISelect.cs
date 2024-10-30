@@ -6,6 +6,7 @@ using System.Linq;
 using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 public class UISelect : MonoBehaviour {
@@ -14,15 +15,6 @@ public class UISelect : MonoBehaviour {
     const float SELECT_SIZE     = 1.2f;
     const float EFFECT_DURATION = 0.2f;
 
-    enum ButtonIndex {
-
-        NONE = -1,
-        START,
-        SETTING,
-        EXIT,
-        COUNT
-
-    };
     [SerializeField] GameObject[] buttons = new GameObject[BUTTON_INDEX];
     TMP_Text[] texts = new TMP_Text[BUTTON_INDEX];
     GameObject[] textsObject = new GameObject[BUTTON_INDEX];
@@ -31,15 +23,15 @@ public class UISelect : MonoBehaviour {
     const KeyCode indexDown     = KeyCode.DownArrow;
     const Ease    MOVEMENT_TYPE = Ease.OutSine;
 
-    ButtonIndex select = ButtonIndex.START;
+    ObserverData.ButtonIndex select = ObserverData.ButtonIndex.START;
 
     Tween currentEffect;
     Vector2 beforeScale;
-    ButtonIndex beforeEffectTarget = ButtonIndex.NONE;
+    ObserverData.ButtonIndex beforeEffectTarget = ObserverData.ButtonIndex.NONE;
 
     void UneffectSelect() {
 
-        if (beforeEffectTarget == ButtonIndex.NONE)
+        if (beforeEffectTarget == ObserverData.ButtonIndex.NONE)
             return;
 
         var target = textsObject[Convert.ToInt32(beforeEffectTarget)];
@@ -51,9 +43,9 @@ public class UISelect : MonoBehaviour {
 
     }
 
-    void EffectSelect(ButtonIndex select) {
+    void EffectSelect(ObserverData.ButtonIndex select) {
 
-        if (select == ButtonIndex.NONE) {
+        if (select == ObserverData.ButtonIndex.NONE) {
 
             return;
         }
@@ -69,11 +61,11 @@ public class UISelect : MonoBehaviour {
 
     }
 
-    ButtonIndex CheckInput() {
+    ObserverData.ButtonIndex CheckInput() {
 
         if (Input.GetKeyDown(indexDown)) {
 
-            var temp = (ButtonIndex)(Convert.ToInt32(select + 1) % Convert.ToInt32(ButtonIndex.COUNT));
+            var temp = (ObserverData.ButtonIndex)(Convert.ToInt32(select + 1) % Convert.ToInt32(ObserverData.ButtonIndex.COUNT));
 
             select = temp;
 
@@ -85,17 +77,17 @@ public class UISelect : MonoBehaviour {
             var temp = Convert.ToInt32(select - 1);
 
             if (temp == -1) {
-                select = ButtonIndex.COUNT - 1;
+                select = ObserverData.ButtonIndex.COUNT - 1;
             }
 
             else {
-                select = (ButtonIndex)temp;
+                select = (ObserverData.ButtonIndex)temp;
             }
 
             return select;
         }
 
-        return ButtonIndex.NONE;
+        return ObserverData.ButtonIndex.NONE;
     }
 
     private void Awake() {
@@ -107,9 +99,15 @@ public class UISelect : MonoBehaviour {
         }
     }
 
-    private void Update()
-    {
+    private void Update() {
         var select = CheckInput();
         EffectSelect(select);
+
+        if(ObserverData.ChangeSelect) {
+            ObserverData.CheckEffect();
+            EffectSelect(this.select = ObserverData.CurrentSelect);
+        }
+
     }
+
 }
