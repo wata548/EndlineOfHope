@@ -14,6 +14,9 @@ public class UISelect : MonoBehaviour {
     const int   BUTTON_INDEX    = 3;
     const float SELECT_SIZE     = 1.2f;
     const float EFFECT_DURATION = 0.2f;
+    const KeyCode indexUp       = KeyCode.UpArrow;
+    const KeyCode indexDown     = KeyCode.DownArrow;
+    const Ease    MOVEMENT_TYPE = Ease.OutSine;
 
     readonly Color disableColor = new Color(0.62f, 0.62f, 0.62f);
     readonly Color EnableColor  = Color.white;
@@ -22,9 +25,6 @@ public class UISelect : MonoBehaviour {
     TMP_Text[] texts = new TMP_Text[BUTTON_INDEX];
     GameObject[] textsObject = new GameObject[BUTTON_INDEX];
 
-    const KeyCode indexUp       = KeyCode.UpArrow;
-    const KeyCode indexDown     = KeyCode.DownArrow;
-    const Ease    MOVEMENT_TYPE = Ease.OutSine;
 
     ObserverData.ButtonIndex select = ObserverData.ButtonIndex.START;
 
@@ -57,10 +57,10 @@ public class UISelect : MonoBehaviour {
 
         GameObject target = textsObject[Convert.ToInt32(select)];
         
-        beforeEffectTarget = select;
-        beforeScale = target.transform.localScale;
-        currentEffect = target.transform.DOScale(beforeScale * SELECT_SIZE, EFFECT_DURATION).SetEase(MOVEMENT_TYPE);
-        texts[Convert.ToInt32(select)].color = EnableColor;
+        beforeEffectTarget                      = select;
+        beforeScale                             = target.transform.localScale;
+        currentEffect                           = target.transform.DOScale(beforeScale * SELECT_SIZE, EFFECT_DURATION).SetEase(MOVEMENT_TYPE);
+        texts[Convert.ToInt32(select)].color    = EnableColor;
 
     }
 
@@ -114,3 +114,6 @@ public class UISelect : MonoBehaviour {
     }
 
 }
+
+
+
