@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using TreeEditor;
 using Unity.VisualScripting;
 using UnityEditor.Networking.PlayerConnection;
 using UnityEngine;
@@ -10,7 +9,24 @@ public class PlayerMovement : MonoBehaviour {
 
 //==================================================| Defaul Values
 
-    #region DefaultValue
+    const float DEFAULT_MOVEMENT_POEWR  = 500f;
+    const float TRASH_HOLD              = 0.1f;
+    const float FRICTION_RATIO          = 0.5f;
+
+//==================================================| Set on Heararchy
+
+    [SerializeField] 
+    GameObject  player          = null;
+
+//==================================================| Fields
+
+    Rigidbody2D playerRigidBody = null;
+    Vector2     playerSize;
+    Vector2     ableMoveRange;
+    Vector2     playerVelocity;
+
+    [Range(-10, 10)] // It just test I will Delete
+    [SerializeField] float timePower = 1;
 
     [Serializable]
     private enum Direction { 
@@ -30,38 +46,16 @@ public class PlayerMovement : MonoBehaviour {
         { Direction.LEFT,   Vector2.left    }
     };
 
-
-    const float DEFAULT_MOVEMENT_POEWR  = 50f;
-    const float TRASH_HOLD              = 0.1f;
-    const float FRICTION_RATIO          = 0.5f;
-
-    readonly Vector2 MAXIMUM_SPEED      = new Vector2(5, 5);
-
-    #endregion
-
-//==================================================| Set on Heararchy
-
-    [SerializeField] 
-    GameObject  player          = null;
-
-//==================================================| Fields
-
-    #region Field
-
-    Rigidbody2D playerRigidBody = null;
-    Vector2     playerSize;
-    Vector2     ableMoveRange;
-    Vector2     playerVelocity;
-
-    [Range(-10, 10)] // It just test I will Delete
-    [SerializeField] float timePower = 1;
-
     (KeyCode key, Direction direction)[] keyDirectionPairs = {
 
             (KeyCode.W, Direction.UP    ),
             (KeyCode.S, Direction.DOWN  ),
             (KeyCode.A, Direction.LEFT  ),
-            (KeyCode.D, Direction.RIGHT )
+            (KeyCode.D, Direction.RIGHT ),
+            (KeyCode.UpArrow,       Direction.UP    ),
+            (KeyCode.DownArrow,     Direction.DOWN  ),
+            (KeyCode.LeftArrow,     Direction.LEFT  ),
+            (KeyCode.RightArrow,    Direction.RIGHT )
     };
 
     bool playerMove = true;
@@ -75,9 +69,7 @@ public class PlayerMovement : MonoBehaviour {
     [SerializeField]
     Direction grabityDirection = Direction.NONE;
 
-    #endregion
-
-    //==================================================| Method
+//==================================================| Method
 
     #region Method
 
@@ -94,21 +86,11 @@ public class PlayerMovement : MonoBehaviour {
             if (direction * playerPos.x > direction * playFieldPos.x + ableMoveRange.x) {
 
                 playerPos.x = playFieldPos.x + direction * ableMoveRange.x;
-                
-                if(direction * playerVelocity.x > 0) {
-
-                    playerVelocity.x = 0;
-                }
             }
 
             if (direction * playerPos.y > direction * playFieldPos.y + ableMoveRange.y) {
 
                 playerPos.y = playFieldPos.y + direction * ableMoveRange.y;
-
-                if (direction * playerVelocity.y > 0) {
-
-                    playerVelocity.y = 0;
-                }
             }
         }
 
@@ -136,11 +118,11 @@ public class PlayerMovement : MonoBehaviour {
 
             case Direction.UP:
             case Direction.DOWN:
-                playerVelo.x *= FRICTION_RATIO;
+                playerVelo.x /= 2;
                 break;
 
             default:
-                playerVelo.y *= FRICTION_RATIO;
+                playerVelo.y /= 2;
                 break;
 
         }
@@ -149,6 +131,7 @@ public class PlayerMovement : MonoBehaviour {
         return playerVelo;
     }
 
+    //* Get Input and return direction
     private Vector2 MovementInput() {
 
         Vector2 forceDelta = Vector2.zero;
@@ -171,19 +154,15 @@ public class PlayerMovement : MonoBehaviour {
             forceDelta.x = 0;
         }
 
+        forceDelta.x = Convert.ToInt32(forceDelta.x) % 2;
+        forceDelta.y = Convert.ToInt32(forceDelta.y) % 2;
+
         return forceDelta;
     }
 
     #endregion
 
-    float ScalarNomalize(float scalar) {
-
-        return scalar > 0 ? 1 : -1;
-    }
-
-    //==================================================| Logic
-
-    #region Logic
+//==================================================| Logic
 
     private void Awake() {
 
@@ -195,7 +174,6 @@ public class PlayerMovement : MonoBehaviour {
 
     void Update()
     {
-
         if(playerRigidBody != null && playerMove) {
 
             Vector2 forceDelta = MovementInput();
@@ -204,23 +182,7 @@ public class PlayerMovement : MonoBehaviour {
             if(input) {
 
                 forceDelta.Normalize();
-
-                Vector2 delta = DEFAULT_MOVEMENT_POEWR * forceDelta * Time.deltaTime * timePower;
-                Vector2 estimate = playerRigidBody.velocity + delta;
-
-                if (MAXIMUM_SPEED.x - Mathf.Abs(estimate.x) < Mathf.Abs(delta.x)) {
-
-                    delta.x = ScalarNomalize(delta.x) * (MAXIMUM_SPEED.x - Mathf.Abs(estimate.x));
-                }
-
-                if (MAXIMUM_SPEED.y - Mathf.Abs(estimate.y) < Mathf.Abs(delta.y)) {
-
-                    delta.y = ScalarNomalize(delta.y) * (MAXIMUM_SPEED.y - Mathf.Abs(estimate.y));
-                }
-
-
-                Debug.Log($"{playerRigidBody.velocity} , {delta}");
-                playerRigidBody.AddForce(delta, ForceMode2D.Impulse);
+                playerRigidBody.velocity = DEFAULT_MOVEMENT_POEWR * forceDelta * Time.deltaTime * timePower;
             }
 
             else {
@@ -230,11 +192,11 @@ public class PlayerMovement : MonoBehaviour {
 
                 playerRigidBody.velocity = DecreseVelocity(playerVelocity);
             }
-/*
+
             playerSize = player.transform.localScale / 2;
             ableMoveRange = Datas.Instance.PlayFieldSize - playerSize;
 
-            playerVelocity = playerRigidBody.velocity + directionForce[grabityDirection] * 5;
+            playerVelocity += directionForce[grabityDirection] * 5;
 
             //* check player out field and fix player's position 
             Vector2 playerPos = player.transform.position;
@@ -244,11 +206,7 @@ public class PlayerMovement : MonoBehaviour {
 
                 player.transform.position   = fixInfo.position;
             }
-            playerRigidBody.velocity    = fixInfo.velocity;
-            */
+            
         }   
     }
-
-    #endregion
-
 }
