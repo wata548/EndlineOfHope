@@ -12,18 +12,22 @@ public class PlayerMovement : MonoBehaviour {
     const float DEFAULT_MOVEMENT_POEWR  = 500f;
     const float TRASH_HOLD              = 0.1f;
     const float FRICTION_RATIO          = 0.5f;
+    const float DEFAULT_GRABITY_POWER   = 50f;
 
 //==================================================| Set on Heararchy
 
     [SerializeField] 
-    GameObject  player          = null;
+    GameObject  player = null;
 
 //==================================================| Fields
+
+    #region Field
 
     Rigidbody2D playerRigidBody = null;
     Vector2     playerSize;
     Vector2     ableMoveRange;
     Vector2     playerVelocity;
+    Vector2     playerPos;
 
     [Range(-10, 10)] // It just test I will Delete
     [SerializeField] float timePower = 1;
@@ -39,6 +43,7 @@ public class PlayerMovement : MonoBehaviour {
     }
 
     Dictionary<Direction, Vector2> directionForce = new Dictionary<Direction, Vector2> {
+
         { Direction.NONE,   Vector2.zero    },
         { Direction.UP,     Vector2.up      },
         { Direction.DOWN,   Vector2.down    },
@@ -51,12 +56,9 @@ public class PlayerMovement : MonoBehaviour {
             (KeyCode.W, Direction.UP    ),
             (KeyCode.S, Direction.DOWN  ),
             (KeyCode.A, Direction.LEFT  ),
-            (KeyCode.D, Direction.RIGHT ),
-            (KeyCode.UpArrow,       Direction.UP    ),
-            (KeyCode.DownArrow,     Direction.DOWN  ),
-            (KeyCode.LeftArrow,     Direction.LEFT  ),
-            (KeyCode.RightArrow,    Direction.RIGHT )
+            (KeyCode.D, Direction.RIGHT )
     };
+    (KeyCode key, Direction direction) jumpDirction = (KeyCode.Space, Direction.UP);
 
     bool playerMove = true;
 
@@ -64,10 +66,13 @@ public class PlayerMovement : MonoBehaviour {
     bool ableMoveHorizon    = true;
 
     bool ableJump = false;
-    (KeyCode key, Direction direction) jumpDirction = (KeyCode.Space, Direction.UP);
 
     [SerializeField]
     Direction grabityDirection = Direction.NONE;
+
+    Vector2 grabityForce = Vector2.zero;
+
+    #endregion
 
 //==================================================| Method
 
@@ -118,11 +123,11 @@ public class PlayerMovement : MonoBehaviour {
 
             case Direction.UP:
             case Direction.DOWN:
-                playerVelo.x /= 2;
+                playerVelo.x *= FRICTION_RATIO;
                 break;
 
             default:
-                playerVelo.y /= 2;
+                playerVelo.y *= FRICTION_RATIO;
                 break;
 
         }
@@ -154,15 +159,33 @@ public class PlayerMovement : MonoBehaviour {
             forceDelta.x = 0;
         }
 
-        forceDelta.x = Convert.ToInt32(forceDelta.x) % 2;
-        forceDelta.y = Convert.ToInt32(forceDelta.y) % 2;
+        if(forceDelta.x != 0) {
+
+            forceDelta.x = Convert.ToInt32(forceDelta.x) / Mathf.Abs(Convert.ToInt32(forceDelta.x));
+        }
+        if(forceDelta.y != 0) {
+
+            forceDelta.y = Convert.ToInt32(forceDelta.y) / Mathf.Abs(Convert.ToInt32(forceDelta.y));
+        }
+
 
         return forceDelta;
+    }
+
+    private void UpdataSizeData() {
+
+        playerVelocity  = playerRigidBody.velocity;
+        playerPos       = player.transform.position;
+        playerSize      = player.transform.localScale / 2;
+
+        ableMoveRange   = Datas.Instance.PlayFieldSize - playerSize;
     }
 
     #endregion
 
 //==================================================| Logic
+
+    #region Ligic
 
     private void Awake() {
 
@@ -174,39 +197,66 @@ public class PlayerMovement : MonoBehaviour {
 
     void Update()
     {
+
+
+        if(Input.GetKeyDown(KeyCode.R)) {
+
+            grabityForce = Vector2.zero;
+        }
+
         if(playerRigidBody != null && playerMove) {
 
+            UpdataSizeData();
+
+            Vector2 velocity = Vector2.zero;
             Vector2 forceDelta = MovementInput();
             bool input = (forceDelta != Vector2.zero);
 
             if(input) {
 
                 forceDelta.Normalize();
-                playerRigidBody.velocity = DEFAULT_MOVEMENT_POEWR * forceDelta * Time.deltaTime * timePower;
+                velocity = DEFAULT_MOVEMENT_POEWR * forceDelta * Time.deltaTime * timePower;
             }
 
             else {
 
                 //* Decrese velocity
-                playerVelocity = playerRigidBody.velocity;
-
-                playerRigidBody.velocity = DecreseVelocity(playerVelocity);
+                velocity = DecreseVelocity(playerVelocity);
             }
 
-            playerSize = player.transform.localScale / 2;
-            ableMoveRange = Datas.Instance.PlayFieldSize - playerSize;
+            grabityForce += directionForce[grabityDirection] * DEFAULT_GRABITY_POWER * Time.deltaTime * timePower;
 
-            playerVelocity += directionForce[grabityDirection] * 5;
+            switch (grabityDirection) {
+
+                case Direction.UP:
+                case Direction.DOWN:
+                    playerVelocity.y = grabityForce.y;
+                    playerVelocity.x = velocity.x;
+                    break;
+
+                case Direction.LEFT:
+                case Direction.RIGHT:
+                    playerVelocity.x = grabityForce.x;
+                    playerVelocity.y = velocity.y;
+                    break;
+
+                default:
+                    playerVelocity = velocity;
+                    break;
+            }
 
             //* check player out field and fix player's position 
-            Vector2 playerPos = player.transform.position;
             var fixInfo = CheckPlayerOutRange(playerPos, playerVelocity);
 
             if(fixInfo.position != playerPos) {
 
-                player.transform.position   = fixInfo.position;
+                player.transform.position = fixInfo.position;
             }
+
+            playerRigidBody.velocity = playerVelocity;
             
         }   
     }
+
+    #endregion
 }
