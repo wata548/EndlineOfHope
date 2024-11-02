@@ -14,6 +14,10 @@ public class PlayerMovement : MonoBehaviour {
     const float FRICTION_RATIO          = 0.5f;
     const float DEFAULT_GRABITY_POWER   = 50f;
 
+    const int   VERTICAL_START          = 0;
+    const int   HORIZONTAL_START        = 2;
+
+
 //==================================================| Set on Heararchy
 
     [SerializeField] 
@@ -38,8 +42,8 @@ public class PlayerMovement : MonoBehaviour {
         NONE = -1,
         UP,
         DOWN,
-        LEFT,
-        RIGHT
+        RIGHT,
+        LEFT
     }
 
     Dictionary<Direction, Vector2> directionForce = new Dictionary<Direction, Vector2> {
@@ -50,7 +54,6 @@ public class PlayerMovement : MonoBehaviour {
         { Direction.RIGHT,  Vector2.right   },
         { Direction.LEFT,   Vector2.left    }
     };
-
     (KeyCode key, Direction direction)[] keyDirectionPairs = {
 
             (KeyCode.W, Direction.UP    ),
@@ -59,6 +62,7 @@ public class PlayerMovement : MonoBehaviour {
             (KeyCode.D, Direction.RIGHT )
     };
     (KeyCode key, Direction direction) jumpDirction = (KeyCode.Space, Direction.UP);
+    public bool[] contectWall = new bool[4];
 
     bool playerMove = true;
 
@@ -79,27 +83,36 @@ public class PlayerMovement : MonoBehaviour {
     #region Method
 
     //* Return fixed position
-    private (Vector2 position, Vector2 velocity) CheckPlayerOutRange(Vector2 playerPos, Vector2 velocity) {
+    private Vector2 CheckPlayerOutRange(Vector2 playerPos) {
 
         Vector2 playFieldPos = Datas.Instance.PlayFieldPos;
 
+        for(int i = 0, size = contectWall.Length; i < size; i++) {
+
+            contectWall[i] = false;
+        }
+
         //* First check up and right, Second check down and left
-        int[] directions = { 1, -1 };
+        int[] direction = { 1, -1 };
 
-        foreach (var direction in directions) {
+        for (int i = 0, size = direction.Length; i < size; i++) {
 
-            if (direction * playerPos.x > direction * playFieldPos.x + ableMoveRange.x) {
+            if (direction[i] * playerPos.x > direction[i] * playFieldPos.x + ableMoveRange.x) {
 
-                playerPos.x = playFieldPos.x + direction * ableMoveRange.x;
+                playerPos.x = playFieldPos.x + direction[i] * ableMoveRange.x;
+
+                contectWall[i + HORIZONTAL_START] = true;
             }
 
-            if (direction * playerPos.y > direction * playFieldPos.y + ableMoveRange.y) {
+            if (direction[i] * playerPos.y > direction[i] * playFieldPos.y + ableMoveRange.y) {
 
-                playerPos.y = playFieldPos.y + direction * ableMoveRange.y;
+                playerPos.y = playFieldPos.y + direction[i] * ableMoveRange.y;
+
+                contectWall[i + VERTICAL_START] = true;
             }
         }
 
-        return (playerPos, velocity);
+        return playerPos;
     }
 
     //* Decrese velocity by friction (use lerf)
@@ -246,11 +259,11 @@ public class PlayerMovement : MonoBehaviour {
             }
 
             //* check player out field and fix player's position 
-            var fixInfo = CheckPlayerOutRange(playerPos, playerVelocity);
+            var fixPos = CheckPlayerOutRange(playerPos);
 
-            if(fixInfo.position != playerPos) {
+            if(fixPos != playerPos) {
 
-                player.transform.position = fixInfo.position;
+                player.transform.position = fixPos;
             }
 
             playerRigidBody.velocity = playerVelocity;
