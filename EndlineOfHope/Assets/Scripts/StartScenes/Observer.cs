@@ -7,7 +7,7 @@ using UnityEngine.EventSystems;
 
 public class ObserverData: MonoBehaviour {
 
-    public static bool ChangeSelect { get; protected set; } = false;
+    public static bool SelecteChange { get; protected set; } = false;
     public static ButtonIndex CurrentSelect { get; protected set; } = ButtonIndex.NONE;
 
     [Serializable]
@@ -22,7 +22,7 @@ public class ObserverData: MonoBehaviour {
 
     public static void CheckEffect() {
 
-        ChangeSelect = false;
+        SelecteChange = false;
     }
 }
 
@@ -35,7 +35,7 @@ public class Observer : ObserverData, IPointerEnterHandler {
         if(CurrentSelect != buttonType) {
 
             CurrentSelect   = buttonType;
-            ChangeSelect    = true;
+            SelecteChange    = true;
         }
     }
     

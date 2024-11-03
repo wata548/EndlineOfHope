@@ -7,7 +7,7 @@ using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour {
 
-//==================================================| Defaul Values
+//==================================================| Default Values
 
     const float DEFAULT_MOVEMENT_POEWR  = 500f;
     const float TRASH_HOLD              = 0.1f;
@@ -62,6 +62,7 @@ public class PlayerMovement : MonoBehaviour {
             (KeyCode.D, Direction.RIGHT )
     };
     (KeyCode key, Direction direction) jumpDirction = (KeyCode.Space, Direction.UP);
+    
     bool[] contactWall = new bool[4];
 
     bool playerMove = true;
@@ -224,6 +225,11 @@ public class PlayerMovement : MonoBehaviour {
 
     void Update()
     {
+
+        /*if(Input.GetKey(KeyCode.Space)) {
+            ShakeCamera.Instance.Shake(0.4f, 0.5f);
+        }*/
+
 
         if(playerRigidBody != null && playerMove) {
 
