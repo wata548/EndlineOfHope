@@ -1730,7 +1730,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   player: {fileID: 1706197937}
   timePower: 1
-  grabityDirection: -1
+  gravityDirection: -1
 --- !u!212 &1706197940
 SpriteRenderer:
   m_ObjectHideFlags: 0

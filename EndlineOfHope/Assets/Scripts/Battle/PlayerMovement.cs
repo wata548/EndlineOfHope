@@ -62,7 +62,7 @@ public class PlayerMovement : MonoBehaviour {
             (KeyCode.D, Direction.RIGHT )
     };
     (KeyCode key, Direction direction) jumpDirction = (KeyCode.Space, Direction.UP);
-    public bool[] contectWall = new bool[4];
+    bool[] contactWall = new bool[4];
 
     bool playerMove = true;
 
@@ -72,9 +72,9 @@ public class PlayerMovement : MonoBehaviour {
     bool ableJump = false;
 
     [SerializeField]
-    Direction grabityDirection = Direction.NONE;
+    Direction gravityDirection = Direction.NONE;
 
-    Vector2 grabityForce = Vector2.zero;
+    Vector2 gravityForce = Vector2.zero;
 
     #endregion
 
@@ -87,9 +87,9 @@ public class PlayerMovement : MonoBehaviour {
 
         Vector2 playFieldPos = Datas.Instance.PlayFieldPos;
 
-        for(int i = 0, size = contectWall.Length; i < size; i++) {
+        for(int i = 0, size = contactWall.Length; i < size; i++) {
 
-            contectWall[i] = false;
+            contactWall[i] = false;
         }
 
         //* First check up and right, Second check down and left
@@ -97,18 +97,20 @@ public class PlayerMovement : MonoBehaviour {
 
         for (int i = 0, size = direction.Length; i < size; i++) {
 
-            if (direction[i] * playerPos.x > direction[i] * playFieldPos.x + ableMoveRange.x) {
+            if (direction[i] * playerPos.x >= direction[i] * playFieldPos.x + ableMoveRange.x) {
 
                 playerPos.x = playFieldPos.x + direction[i] * ableMoveRange.x;
 
-                contectWall[i + HORIZONTAL_START] = true;
+                contactWall[i + HORIZONTAL_START] = 
+                    direction[i] * playerPos.x == direction[i] * playFieldPos.x + ableMoveRange.x;
             }
 
-            if (direction[i] * playerPos.y > direction[i] * playFieldPos.y + ableMoveRange.y) {
+            if (direction[i] * playerPos.y >= direction[i] * playFieldPos.y + ableMoveRange.y) {
 
                 playerPos.y = playFieldPos.y + direction[i] * ableMoveRange.y;
 
-                contectWall[i + VERTICAL_START] = true;
+                contactWall[i + VERTICAL_START] = 
+                    direction[i] * playerPos.y == direction[i] * playFieldPos.y + ableMoveRange.y;
             }
         }
 
@@ -128,7 +130,7 @@ public class PlayerMovement : MonoBehaviour {
             playerVelo.y = 0;
         }
 
-        switch (grabityDirection) {
+        switch (gravityDirection) {
 
             case Direction.NONE:
                 playerVelo *= FRICTION_RATIO;
@@ -185,6 +187,18 @@ public class PlayerMovement : MonoBehaviour {
         return forceDelta;
     }
 
+    private void CalculateGravity(ref Vector2 gravityForce, Direction gravityDirection) {
+
+        if (gravityDirection != Direction.NONE && contactWall[Convert.ToInt16(gravityDirection)] == false) {
+
+            gravityForce += directionForce[gravityDirection] * DEFAULT_GRABITY_POWER * Time.deltaTime * timePower;
+        }
+        else {
+
+            gravityForce = Vector2.zero;
+        }
+    }
+
     private void UpdataSizeData() {
 
         playerVelocity  = playerRigidBody.velocity;
@@ -211,12 +225,6 @@ public class PlayerMovement : MonoBehaviour {
     void Update()
     {
 
-
-        if(Input.GetKeyDown(KeyCode.R)) {
-
-            grabityForce = Vector2.zero;
-        }
-
         if(playerRigidBody != null && playerMove) {
 
             UpdataSizeData();
@@ -237,19 +245,19 @@ public class PlayerMovement : MonoBehaviour {
                 velocity = DecreseVelocity(playerVelocity);
             }
 
-            grabityForce += directionForce[grabityDirection] * DEFAULT_GRABITY_POWER * Time.deltaTime * timePower;
+            CalculateGravity(ref gravityForce, gravityDirection);
 
-            switch (grabityDirection) {
+            switch (gravityDirection) {
 
                 case Direction.UP:
                 case Direction.DOWN:
-                    playerVelocity.y = grabityForce.y;
+                    playerVelocity.y = gravityForce.y;
                     playerVelocity.x = velocity.x;
                     break;
 
                 case Direction.LEFT:
                 case Direction.RIGHT:
-                    playerVelocity.x = grabityForce.x;
+                    playerVelocity.x = gravityForce.x;
                     playerVelocity.y = velocity.y;
                     break;
 
