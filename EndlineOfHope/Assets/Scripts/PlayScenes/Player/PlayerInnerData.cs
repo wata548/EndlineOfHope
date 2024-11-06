@@ -86,7 +86,7 @@ public class Invincible {
 public class PlayerInnerData : MonoBehaviour {
     public static PlayerInnerData Instance { get; private set; } = null;
 
-    Invincible invincible = new();
+    public Invincible Invincible { get; private set; } = new();
     [SerializeField] GameObject player;
 
     #region PlayFieldInfo
@@ -121,7 +121,7 @@ public class PlayerInnerData : MonoBehaviour {
         (KeyCode.LeftArrow, Direction.LEFT  ),
         (KeyCode.RightArrow, Direction.RIGHT )
     };
-    public (KeyCode key, Direction direction) jumpDirction { get; private set; } = (KeyCode.Space, Direction.UP);
+    public (KeyCode key, Direction direction) JumpDirction { get; private set; } = (KeyCode.Space, Direction.UP);
     #endregion
 
     private void UpdataFieldSize() {
@@ -143,7 +143,7 @@ public class PlayerInnerData : MonoBehaviour {
 
         UpdataFieldSize();
 
-        invincible.Updata();
+        Invincible.Updata();
 
     }
 }

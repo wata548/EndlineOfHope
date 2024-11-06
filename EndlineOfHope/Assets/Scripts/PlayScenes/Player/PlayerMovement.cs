@@ -56,6 +56,36 @@ public class PlayerMovement : MonoBehaviour {
 
     #region Method
 
+    private Vector2 Move() {
+
+        Vector2 velocity = Vector2.zero;
+        Vector2 forceDelta = MovementInput();
+        bool input = (forceDelta != Vector2.zero);
+
+        if (input) {
+
+            forceDelta.Normalize();
+            velocity = DEFAULT_MOVEMENT_POEWR * forceDelta * timePower;
+        }
+
+        else {
+
+            velocity = DecreseVelocity(playerVelocity);
+        }
+
+        velocity = CalculateGravity(velocity, gravityForce, gravityDirection);
+
+        //* check player out field and fix player's position 
+        var fixPos = CheckPlayerOutRange(playerPos);
+
+        if (fixPos != playerPos) {
+
+            player.transform.position = fixPos;
+        }
+
+        return velocity;
+    }
+
     //* Return fixed position
     private Vector2 CheckPlayerOutRange(Vector2 playerPos) {
 
@@ -215,7 +245,7 @@ public class PlayerMovement : MonoBehaviour {
         ableMoveHorizon         = PlayerInnerData.Instance.AbleMoveHorizon;
         ableMoveVertical        = PlayerInnerData.Instance.AbleMoveVertical;
         playerMove              = PlayerInnerData.Instance.PlayerMode;
-        jumpDirction            = PlayerInnerData.Instance.jumpDirction;
+        jumpDirction            = PlayerInnerData.Instance.JumpDirction;
 
         playerVelocity  = playerRigidBody.velocity;
         playerPos       = player.transform.position;
@@ -226,9 +256,11 @@ public class PlayerMovement : MonoBehaviour {
 
     #endregion
 
-//==================================================| Logic
+    //==================================================| Logic
 
     #region Ligic
+
+    public LinearMove a;
 
     private void Awake() {
 
@@ -239,6 +271,8 @@ public class PlayerMovement : MonoBehaviour {
             player          = PlayerInnerData.Instance.Player;
             playerRigidBody = player.GetComponent<Rigidbody2D>();
         }
+
+        a.SetUp(gameObject, EnemyMoveTypes.LINEAR, 0.9f);
     }
 
     void Update()
@@ -247,32 +281,7 @@ public class PlayerMovement : MonoBehaviour {
 
             UpdataSizeData();
 
-            Vector2 velocity = Vector2.zero;
-            Vector2 forceDelta = MovementInput();
-            bool input = (forceDelta != Vector2.zero);
-
-            if(input) {
-
-                forceDelta.Normalize();
-                velocity = DEFAULT_MOVEMENT_POEWR * forceDelta * timePower;
-            }
-
-            else {
-
-                velocity = DecreseVelocity(playerVelocity);
-            }
-
-            playerVelocity = CalculateGravity(velocity, gravityForce, gravityDirection);
-
-            //* check player out field and fix player's position 
-            var fixPos = CheckPlayerOutRange(playerPos);
-
-            if(fixPos != playerPos) {
-
-                player.transform.position = fixPos;
-            }
-
-            playerRigidBody.velocity = playerVelocity;
+            playerRigidBody.velocity = Move();
             
         }   
     }
