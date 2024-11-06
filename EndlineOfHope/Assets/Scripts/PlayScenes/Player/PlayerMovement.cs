@@ -40,20 +40,14 @@ public class PlayerMovement : MonoBehaviour {
         { Direction.LEFT,   Vector2.left    }
     };
     (KeyCode key, Direction direction)[] keyDirectionPairs;
-    (KeyCode key, Direction direction) jumpDirction = (KeyCode.Space, Direction.UP);
+    (KeyCode key, Direction direction) jumpDirction;
 
-    ContactCheck contactWall = new();
-
+    ContactCheck contactWall;
     bool playerMove = true;
-
-    bool ableMoveVertical     = true;
-    bool ableMoveHorizon    = true;
-
+    bool ableMoveVertical = true;
+    bool ableMoveHorizon = true;
     bool ableJump = false;
-
-    [SerializeField]
     Direction gravityDirection = Direction.NONE;
-
     Vector2 gravityForce = Vector2.zero;
 
     #endregion
@@ -65,7 +59,7 @@ public class PlayerMovement : MonoBehaviour {
     //* Return fixed position
     private Vector2 CheckPlayerOutRange(Vector2 playerPos) {
 
-        Vector2 playFieldPos = Datas.Instance.PlayFieldPos;
+        Vector2 playFieldPos = PlayerInnerData.Instance.PlayFieldPos;
 
         contactWall.Clear();
 
@@ -93,62 +87,64 @@ public class PlayerMovement : MonoBehaviour {
     }
 
     //* Decrese velocity by friction (use lerf)
-    private Vector2 DecreseVelocity(Vector2 playerVelo) {
+    private Vector2 DecreseVelocity(Vector2 playerVelocity) {
 
-        Vector2 absVelocity = new Vector2(playerVelo.x, playerVelo.y);
+        playerVelocity = FrictionTrashHold(playerVelocity, TRASH_HOLD);
+        playerVelocity = MovementFriction(playerVelocity, gravityDirection);
 
-        if (absVelocity.x < TRASH_HOLD) {
-            playerVelo.x = 0;
-        }
+        return playerVelocity;
+    }
+    private Vector2 MovementFriction(Vector2 velocity, Direction gravity = Direction.NONE) {
 
-        if (absVelocity.y < TRASH_HOLD) {
-            playerVelo.y = 0;
-        }
+        switch (gravity) {
 
-        switch (gravityDirection) {
-
-            case Direction.NONE:
-                playerVelo *= FRICTION_RATIO;
+            case Direction.LEFT:
+            case Direction.RIGHT:
+                velocity.y *= FRICTION_RATIO;
                 break;
 
             case Direction.UP:
             case Direction.DOWN:
-                playerVelo.x *= FRICTION_RATIO;
+                velocity.x *= FRICTION_RATIO;
                 break;
 
             default:
-                playerVelo.y *= FRICTION_RATIO;
+                velocity *= FRICTION_RATIO;
                 break;
 
         }
 
-
-        return playerVelo;
+        return velocity;
     }
+    private Vector2 FrictionTrashHold(Vector2 velocity, float trashHoldRange) {
 
+        if (Mathf.Abs(velocity.x) < trashHoldRange) {
+            velocity.x = 0;
+        }
+
+        if (Mathf.Abs(velocity.y) < trashHoldRange) {
+            velocity.y = 0;
+        }
+
+        return velocity;
+    }
+    
     //* Get Input and return direction
     private Vector2 MovementInput() {
 
-        Vector2 forceDelta = Vector2.zero;
+        Vector2 forceDelta = InputKey();
 
-        foreach(var keyDirectionPair in keyDirectionPairs) {
-
-            if(Input.GetKey(keyDirectionPair.key)) {
-
-                forceDelta += directionForce[keyDirectionPair.direction];
-            }
-        }
-
+        //* check able move
         if(!ableMoveVertical) {
 
             forceDelta.y = 0;
         }
-
         if(!ableMoveHorizon) {
 
             forceDelta.x = 0;
         }
 
+        //* multple key process 
         if(forceDelta.x != 0) {
 
             forceDelta.x = (forceDelta.x > 0 ? 1 : -1);
@@ -161,17 +157,54 @@ public class PlayerMovement : MonoBehaviour {
 
         return forceDelta;
     }
+    private Vector2 InputKey() {
 
-    private void CalculateGravity(ref Vector2 gravityForce, Direction gravityDirection) {
+        Vector2 inputKey = Vector2.zero;
+
+        foreach (var keyDirectionPair in keyDirectionPairs) {
+
+            if (Input.GetKey(keyDirectionPair.key)) {
+
+                inputKey += directionForce[keyDirectionPair.direction];
+            }
+        }
+
+        return inputKey;
+    }
+
+    private Vector2 CalculateGravity(Vector2 velocity, Vector2 gravityForce, Direction gravityDirection) {
 
         if (gravityDirection != Direction.NONE && !contactWall.Get(gravityDirection)) {
 
-            gravityForce += directionForce[gravityDirection] * DEFAULT_GRABITY_POWER * timePower * Time.deltaTime;
+            gravityForce += 
+                directionForce[gravityDirection] * DEFAULT_GRABITY_POWER * timePower * Time.deltaTime;
         }
+
         else {
 
             gravityForce = Vector2.zero;
         }
+
+        switch (gravityDirection) {
+
+            case Direction.UP:
+            case Direction.DOWN:
+                velocity.y = gravityForce.y;
+                break;
+
+            case Direction.LEFT:
+            case Direction.RIGHT:
+                velocity.x = gravityForce.x;
+                break;
+        }
+
+        return velocity;
+    }
+
+    private void SetDefaultData() {
+
+        contactWall = PlayerInnerData.Instance.ContactWall;
+        keyDirectionPairs = PlayerInnerData.Instance.KeyDirectionPairs;
     }
 
     private void UpdataSizeData() {
@@ -182,13 +215,13 @@ public class PlayerMovement : MonoBehaviour {
         ableMoveHorizon         = PlayerInnerData.Instance.AbleMoveHorizon;
         ableMoveVertical        = PlayerInnerData.Instance.AbleMoveVertical;
         playerMove              = PlayerInnerData.Instance.PlayerMode;
-        player                  = PlayerInnerData.Instance.Player;
+        jumpDirction            = PlayerInnerData.Instance.jumpDirction;
 
         playerVelocity  = playerRigidBody.velocity;
         playerPos       = player.transform.position;
         playerSize      = player.transform.localScale / 2;
 
-        ableMoveRange   = Datas.Instance.PlayFieldSize - playerSize;
+        ableMoveRange   = PlayerInnerData.Instance.PlayFieldSize / 2 - playerSize;
     }
 
     #endregion
@@ -199,10 +232,11 @@ public class PlayerMovement : MonoBehaviour {
 
     private void Awake() {
 
-        keyDirectionPairs = PlayerInnerData.Instance.KeyDirectionPairs;
+        SetDefaultData();
 
         if(playerRigidBody == null) {
 
+            player          = PlayerInnerData.Instance.Player;
             playerRigidBody = player.GetComponent<Rigidbody2D>();
         }
     }
@@ -225,30 +259,10 @@ public class PlayerMovement : MonoBehaviour {
 
             else {
 
-                //* Decrese velocity
                 velocity = DecreseVelocity(playerVelocity);
             }
 
-            CalculateGravity(ref gravityForce, gravityDirection);
-
-            switch (gravityDirection) {
-
-                case Direction.UP:
-                case Direction.DOWN:
-                    playerVelocity.y = gravityForce.y;
-                    playerVelocity.x = velocity.x;
-                    break;
-
-                case Direction.LEFT:
-                case Direction.RIGHT:
-                    playerVelocity.x = gravityForce.x;
-                    playerVelocity.y = velocity.y;
-                    break;
-
-                default:
-                    playerVelocity = velocity;
-                    break;
-            }
+            playerVelocity = CalculateGravity(velocity, gravityForce, gravityDirection);
 
             //* check player out field and fix player's position 
             var fixPos = CheckPlayerOutRange(playerPos);

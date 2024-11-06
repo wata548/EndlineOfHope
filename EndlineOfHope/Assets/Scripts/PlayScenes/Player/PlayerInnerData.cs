@@ -51,23 +51,66 @@ public class ContactCheck {
     }
 }
 
-public class PlayerInnerData: MonoBehaviour
-{
-    public static PlayerInnerData Instance { get; private set; } = null;
+public class Invincible {
 
     const float INVINCIBLE_FRAME = 1.2f;
-    float currentInvincibleFrame = 0;
+    float currentFrame = 0;
     bool invincible;
 
-    public GameObject   Player              { get; private set; }
-    public bool         PlayerMode          { get; private set; } = true;
-    public bool         AbleMoveVertical    { get; private set; } = true;
-    public bool         AbleMoveHorizon     { get; private set; } = true;
-    public bool         AbleJump            { get; private set; } = false;
-    public Direction    GravibtyDirection   { get; private set; } = Direction.NONE;
-    public float        TimePower           { get; private set; } = 1;
+    public void StartInvincible() {
 
-    public (KeyCode key, Direction direction)[] KeyDirectionPairs { get; private set; } = 
+        if (invincible) {
+            return;
+        }
+
+        invincible = true;
+        currentFrame = INVINCIBLE_FRAME;
+
+    }
+
+    public void Updata() {
+
+        if(invincible) {
+
+            currentFrame -= Time.deltaTime;
+
+            if(currentFrame <= 0) {
+
+                currentFrame = 0;
+                invincible = false;
+            }
+        }
+    }
+}
+
+public class PlayerInnerData : MonoBehaviour {
+    public static PlayerInnerData Instance { get; private set; } = null;
+
+    Invincible invincible = new();
+    [SerializeField] GameObject player;
+
+    #region PlayFieldInfo
+    [SerializeField] GameObject playField;
+    public Vector2 PlayFieldSize { get; private set; }
+    public Vector2 PlayFieldPos { get; private set; }
+    #endregion
+
+    #region ControleInfo
+    public GameObject Player { get; private set; }
+    public ContactCheck ContactWall { get; private set; } = new();
+
+    public float TimePower { get; private set; } = 1;
+
+    public bool PlayerMode { get; private set; } = true;
+    public bool AbleMoveVertical { get; private set; } = true;
+    public bool AbleMoveHorizon { get; private set; } = true;
+
+    public bool AbleJump { get; private set; } = false;
+    public Direction GravibtyDirection { get; private set; } = Direction.NONE;
+    #endregion  
+
+    #region Key
+    public (KeyCode key, Direction direction)[] KeyDirectionPairs { get; private set; } =
     {
         (KeyCode.W, Direction.UP    ),
         (KeyCode.S, Direction.DOWN  ),
@@ -78,18 +121,13 @@ public class PlayerInnerData: MonoBehaviour
         (KeyCode.LeftArrow, Direction.LEFT  ),
         (KeyCode.RightArrow, Direction.RIGHT )
     };
+    public (KeyCode key, Direction direction) jumpDirction { get; private set; } = (KeyCode.Space, Direction.UP);
+    #endregion
 
-    [SerializeField] GameObject player;
- 
-    public void Invincible() {
+    private void UpdataFieldSize() {
 
-        if(invincible) {
-            return;
-        }
-
-        invincible = true;
-        currentInvincibleFrame = INVINCIBLE_FRAME;
-
+        PlayFieldSize = playField.transform.localScale;
+        PlayFieldPos = playField.transform.position;
     }
 
     private void Awake() {
@@ -102,17 +140,10 @@ public class PlayerInnerData: MonoBehaviour
     }
 
     private void Update() {
-        
-        if(invincible) {
 
-            currentInvincibleFrame -= Time.deltaTime;
+        UpdataFieldSize();
 
-            if (currentInvincibleFrame < 0) {
+        invincible.Updata();
 
-                currentInvincibleFrame = 0;
-                invincible = false;
-            }
-
-        }
     }
 }
