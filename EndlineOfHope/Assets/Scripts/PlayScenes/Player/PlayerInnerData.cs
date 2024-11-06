@@ -57,15 +57,16 @@ public class Invincible {
     float currentFrame = 0;
     bool invincible;
 
-    public void StartInvincible() {
+    public bool StartInvincible() {
 
         if (invincible) {
-            return;
+            return false;
         }
 
         invincible = true;
         currentFrame = INVINCIBLE_FRAME;
 
+        return true;
     }
 
     public void Updata() {

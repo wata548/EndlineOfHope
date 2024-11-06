@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -9,12 +10,27 @@ public enum EnemyMoveTypes {
     LERP
 }
 
+//maek Disappear ifs ,<- use delegate or action or func and enums
+//deamege ifs <- it is same 
+
+[Flags]
+public enum Condition { 
+
+    OBJECT, 
+    PLAYER,
+    OUT_FIELD,
+    FUNCTION
+}
+
+
 [RequireComponent(typeof(Rigidbody2D))]
 public abstract class EnemyBase: MonoBehaviour {
 
     const int INF = 987654321;
 
-    protected bool             start       { get; set; } = false;
+    protected static List<(GameObject, EnemyBase)> Collector { get; set; } = new();
+
+    protected bool             Start       { get; set; } = false;
 
     protected Rigidbody2D      Enemy       { get; set; }
     protected float            Deamage     { get; set; }
@@ -22,9 +38,15 @@ public abstract class EnemyBase: MonoBehaviour {
     protected EnemyMoveTypes   MoveType    { get; set; }
     protected float            AccelRatio  { get; set; }
     protected float            LerpPower   { get; set; }
+
     protected bool             Maintain    { get; set; }
 
     protected Vector2          Velocity    { get; set; } = Vector2.zero;
+
+    protected Condition DemeageCondition    { get; set; }
+    protected delegate bool deamage(Vector2 pos);
+    protected Condition DisappearCondition  { get; set; } = Condition.PLAYER;
+    protected delegate bool Disappear(Vector2 pos);
 
     public void SendDeamage() {
 
@@ -48,8 +70,8 @@ public abstract class EnemyBase: MonoBehaviour {
         }
     }
 
-    public abstract void SetUp(GameObject target, EnemyMoveTypes type, float power);
-    public abstract void SetUp(Vector3 target, EnemyMoveTypes type, float power);
+    public abstract void SetUp(GameObject target, EnemyMoveTypes type, float defaultPower, float power);
+    public abstract void SetUp(Vector3 target, EnemyMoveTypes type, float defaultPower, float power);
 
     protected void SetPower(EnemyMoveTypes type, float power) {
 
@@ -70,6 +92,18 @@ public abstract class EnemyBase: MonoBehaviour {
 
         Enemy = GetComponent<Rigidbody2D>();
         Enemy.mass = INF;
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision) {
+
+
+        if(Convert.ToInt32(DisappearCondition & Condition.PLAYER) != 0) {
+
+            this.gameObject.SetActive(false);
+            Collector.Add((this.gameObject, this));
+
+            ShakeCamera.Instance.Shake(0.2f, 0.2f);
+        }
     }
 }
 

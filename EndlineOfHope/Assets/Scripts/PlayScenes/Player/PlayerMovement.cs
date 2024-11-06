@@ -27,11 +27,11 @@ public class PlayerMovement : MonoBehaviour {
     Vector2     playerSize;
     Vector2     ableMoveRange;
     Vector2     playerVelocity;
-    Vector2     playerPos;
+    Vector3     playerPos;
 
     float timePower = 1;
 
-    Dictionary<Direction, Vector2> directionForce = new Dictionary<Direction, Vector2> {
+    Dictionary<Direction, Vector2> directionForce = new() {
 
         { Direction.NONE,   Vector2.zero    },
         { Direction.UP,     Vector2.up      },
@@ -58,7 +58,7 @@ public class PlayerMovement : MonoBehaviour {
 
     private Vector2 Move() {
 
-        Vector2 velocity = Vector2.zero;
+        Vector2 velocity;
         Vector2 forceDelta = MovementInput();
         bool input = (forceDelta != Vector2.zero);
 
@@ -73,10 +73,11 @@ public class PlayerMovement : MonoBehaviour {
             velocity = DecreseVelocity(playerVelocity);
         }
 
-        velocity = CalculateGravity(velocity, gravityForce, gravityDirection);
+        velocity = CalculateGravity(velocity, ref gravityForce, gravityDirection);
 
         //* check player out field and fix player's position 
         var fixPos = CheckPlayerOutRange(playerPos);
+        fixPos.z = -1;
 
         if (fixPos != playerPos) {
 
@@ -87,7 +88,7 @@ public class PlayerMovement : MonoBehaviour {
     }
 
     //* Return fixed position
-    private Vector2 CheckPlayerOutRange(Vector2 playerPos) {
+    private Vector3 CheckPlayerOutRange(Vector2 playerPos) {
 
         Vector2 playFieldPos = PlayerInnerData.Instance.PlayFieldPos;
 
@@ -202,7 +203,7 @@ public class PlayerMovement : MonoBehaviour {
         return inputKey;
     }
 
-    private Vector2 CalculateGravity(Vector2 velocity, Vector2 gravityForce, Direction gravityDirection) {
+    private Vector2 CalculateGravity(Vector2 velocity, ref Vector2 gravityForce, Direction gravityDirection) {
 
         if (gravityDirection != Direction.NONE && !contactWall.Get(gravityDirection)) {
 
@@ -260,8 +261,6 @@ public class PlayerMovement : MonoBehaviour {
 
     #region Ligic
 
-    public LinearMove a;
-
     private void Awake() {
 
         SetDefaultData();
@@ -272,7 +271,6 @@ public class PlayerMovement : MonoBehaviour {
             playerRigidBody = player.GetComponent<Rigidbody2D>();
         }
 
-        a.SetUp(gameObject, EnemyMoveTypes.LINEAR, 0.9f);
     }
 
     void Update()
@@ -285,6 +283,5 @@ public class PlayerMovement : MonoBehaviour {
             
         }   
     }
-
     #endregion
 }
