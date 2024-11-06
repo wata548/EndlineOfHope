@@ -26,5 +26,6 @@ public class Datas : MonoBehaviour
 
         PlayFieldSize = playField.transform.localScale / 2;
         PlayFieldPos = playField.transform.position;
+
     }
 }

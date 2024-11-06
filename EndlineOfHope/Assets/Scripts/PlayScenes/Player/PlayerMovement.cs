@@ -9,23 +9,19 @@ public class PlayerMovement : MonoBehaviour {
 
 //==================================================| Default Values
 
-    const float DEFAULT_MOVEMENT_POEWR  = 500f;
+    const float DEFAULT_MOVEMENT_POEWR  = 5f;
     const float TRASH_HOLD              = 0.1f;
     const float FRICTION_RATIO          = 0.5f;
     const float DEFAULT_GRABITY_POWER   = 50f;
 
-    const int   VERTICAL_START          = 0;
-    const int   HORIZONTAL_START        = 2;
+    const int   VERTICAL_START          = 0b1;
+    const int   HORIZONTAL_START        = 0b001;
 
-
-//==================================================| Set on Heararchy
-
-    [SerializeField] 
-    GameObject  player = null;
-
-//==================================================| Fields
+    //==================================================| Fields
 
     #region Field
+
+    GameObject player;
 
     Rigidbody2D playerRigidBody = null;
     Vector2     playerSize;
@@ -33,18 +29,7 @@ public class PlayerMovement : MonoBehaviour {
     Vector2     playerVelocity;
     Vector2     playerPos;
 
-    [Range(-10, 10)] // It just test I will Delete
-    [SerializeField] float timePower = 1;
-
-    [Serializable]
-    private enum Direction { 
-    
-        NONE = -1,
-        UP,
-        DOWN,
-        RIGHT,
-        LEFT
-    }
+    float timePower = 1;
 
     Dictionary<Direction, Vector2> directionForce = new Dictionary<Direction, Vector2> {
 
@@ -54,20 +39,14 @@ public class PlayerMovement : MonoBehaviour {
         { Direction.RIGHT,  Vector2.right   },
         { Direction.LEFT,   Vector2.left    }
     };
-    (KeyCode key, Direction direction)[] keyDirectionPairs = {
-
-            (KeyCode.W, Direction.UP    ),
-            (KeyCode.S, Direction.DOWN  ),
-            (KeyCode.A, Direction.LEFT  ),
-            (KeyCode.D, Direction.RIGHT )
-    };
+    (KeyCode key, Direction direction)[] keyDirectionPairs;
     (KeyCode key, Direction direction) jumpDirction = (KeyCode.Space, Direction.UP);
-    
-    bool[] contactWall = new bool[4];
+
+    ContactCheck contactWall = new();
 
     bool playerMove = true;
 
-    bool ableMoveVertex     = true;
+    bool ableMoveVertical     = true;
     bool ableMoveHorizon    = true;
 
     bool ableJump = false;
@@ -88,10 +67,7 @@ public class PlayerMovement : MonoBehaviour {
 
         Vector2 playFieldPos = Datas.Instance.PlayFieldPos;
 
-        for(int i = 0, size = contactWall.Length; i < size; i++) {
-
-            contactWall[i] = false;
-        }
+        contactWall.Clear();
 
         //* First check up and right, Second check down and left
         int[] direction = { 1, -1 };
@@ -102,16 +78,14 @@ public class PlayerMovement : MonoBehaviour {
 
                 playerPos.x = playFieldPos.x + direction[i] * ableMoveRange.x;
 
-                contactWall[i + HORIZONTAL_START] = 
-                    direction[i] * playerPos.x == direction[i] * playFieldPos.x + ableMoveRange.x;
+                contactWall.Set((Direction)(HORIZONTAL_START << i), true);
             }
 
             if (direction[i] * playerPos.y >= direction[i] * playFieldPos.y + ableMoveRange.y) {
 
                 playerPos.y = playFieldPos.y + direction[i] * ableMoveRange.y;
 
-                contactWall[i + VERTICAL_START] = 
-                    direction[i] * playerPos.y == direction[i] * playFieldPos.y + ableMoveRange.y;
+                contactWall.Set((Direction)(VERTICAL_START << i), true);
             }
         }
 
@@ -165,7 +139,7 @@ public class PlayerMovement : MonoBehaviour {
             }
         }
 
-        if(!ableMoveVertex) {
+        if(!ableMoveVertical) {
 
             forceDelta.y = 0;
         }
@@ -177,11 +151,11 @@ public class PlayerMovement : MonoBehaviour {
 
         if(forceDelta.x != 0) {
 
-            forceDelta.x = Convert.ToInt32(forceDelta.x) / Mathf.Abs(Convert.ToInt32(forceDelta.x));
+            forceDelta.x = (forceDelta.x > 0 ? 1 : -1);
         }
         if(forceDelta.y != 0) {
 
-            forceDelta.y = Convert.ToInt32(forceDelta.y) / Mathf.Abs(Convert.ToInt32(forceDelta.y));
+            forceDelta.y = (forceDelta.y > 0 ? 1 : -1);
         }
 
 
@@ -190,9 +164,9 @@ public class PlayerMovement : MonoBehaviour {
 
     private void CalculateGravity(ref Vector2 gravityForce, Direction gravityDirection) {
 
-        if (gravityDirection != Direction.NONE && contactWall[Convert.ToInt16(gravityDirection)] == false) {
+        if (gravityDirection != Direction.NONE && !contactWall.Get(gravityDirection)) {
 
-            gravityForce += directionForce[gravityDirection] * DEFAULT_GRABITY_POWER * Time.deltaTime * timePower;
+            gravityForce += directionForce[gravityDirection] * DEFAULT_GRABITY_POWER * timePower * Time.deltaTime;
         }
         else {
 
@@ -201,6 +175,14 @@ public class PlayerMovement : MonoBehaviour {
     }
 
     private void UpdataSizeData() {
+
+        timePower               = PlayerInnerData.Instance.TimePower;
+        gravityDirection        = PlayerInnerData.Instance.GravibtyDirection;
+        ableJump                = PlayerInnerData.Instance.AbleJump;
+        ableMoveHorizon         = PlayerInnerData.Instance.AbleMoveHorizon;
+        ableMoveVertical        = PlayerInnerData.Instance.AbleMoveVertical;
+        playerMove              = PlayerInnerData.Instance.PlayerMode;
+        player                  = PlayerInnerData.Instance.Player;
 
         playerVelocity  = playerRigidBody.velocity;
         playerPos       = player.transform.position;
@@ -217,6 +199,8 @@ public class PlayerMovement : MonoBehaviour {
 
     private void Awake() {
 
+        keyDirectionPairs = PlayerInnerData.Instance.KeyDirectionPairs;
+
         if(playerRigidBody == null) {
 
             playerRigidBody = player.GetComponent<Rigidbody2D>();
@@ -225,12 +209,6 @@ public class PlayerMovement : MonoBehaviour {
 
     void Update()
     {
-
-        /*if(Input.GetKey(KeyCode.Space)) {
-            ShakeCamera.Instance.Shake(0.4f, 0.5f);
-        }*/
-
-
         if(playerRigidBody != null && playerMove) {
 
             UpdataSizeData();
@@ -242,7 +220,7 @@ public class PlayerMovement : MonoBehaviour {
             if(input) {
 
                 forceDelta.Normalize();
-                velocity = DEFAULT_MOVEMENT_POEWR * forceDelta * Time.deltaTime * timePower;
+                velocity = DEFAULT_MOVEMENT_POEWR * forceDelta * timePower;
             }
 
             else {
