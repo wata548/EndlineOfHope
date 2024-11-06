@@ -1,3 +1,4 @@
+using DG.Tweening;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -16,17 +17,26 @@ public enum EnemyMoveTypes {
 [Flags]
 public enum Condition { 
 
-    OBJECT, 
-    PLAYER,
-    OUT_FIELD,
-    FUNCTION
+    OBJECT      = 0b1000, 
+    PLAYER      = 0b0100,
+    OUT_FIELD   = 0b0010,
+    FUNCTION    = 0b0001
 }
 
+public class CheckAndAnimation {
+
+    public Func<Vector2, bool> Check = null;
+    public Func<GameObject, Sequence> Before = null;
+    public Func<GameObject, Sequence> After = null;
+}
 
 [RequireComponent(typeof(Rigidbody2D))]
 public abstract class EnemyBase: MonoBehaviour {
 
     const int INF = 987654321;
+
+    const float CAMERA_SHAKE_POWER = 0.2f;
+    const float CAMERA_SHAKE_DURACTION = 0.2f;
 
     protected static List<(GameObject, EnemyBase)> Collector { get; set; } = new();
 
@@ -43,15 +53,11 @@ public abstract class EnemyBase: MonoBehaviour {
 
     protected Vector2          Velocity    { get; set; } = Vector2.zero;
 
-    protected Condition DemeageCondition    { get; set; }
-    protected delegate bool deamage(Vector2 pos);
+    protected Condition DemeageCondition    { get; set; } = Condition.OBJECT;
+    public CheckAndAnimation damage = new();
+
     protected Condition DisappearCondition  { get; set; } = Condition.PLAYER;
-    protected delegate bool Disappear(Vector2 pos);
-
-    public void SendDeamage() {
-
-        PlayerInnerData.Instance.Invincible.StartInvincible();
-    }
+    public CheckAndAnimation disappear = new();
 
     public void Lerp() {
 
@@ -96,13 +102,71 @@ public abstract class EnemyBase: MonoBehaviour {
 
     private void OnCollisionEnter2D(Collision2D collision) {
 
+        bool playerCollision = collision.gameObject == PlayerInnerData.Instance.Player;
 
-        if(Convert.ToInt32(DisappearCondition & Condition.PLAYER) != 0) {
+        bool disappearCheck =
+            (ConditionCheck(DisappearCondition, Condition.PLAYER) && playerCollision) ||
+            (ConditionCheck(DisappearCondition, Condition.OBJECT));
 
-            this.gameObject.SetActive(false);
-            Collector.Add((this.gameObject, this));
+        bool deameageCheck =
+            (ConditionCheck(DemeageCondition, Condition.PLAYER) && playerCollision) ||
+            (ConditionCheck(DemeageCondition, Condition.OBJECT));
 
-            ShakeCamera.Instance.Shake(0.2f, 0.2f);
+        if (disappearCheck) {
+
+            DisappearProcess();
+        }
+        if (deameageCheck) {
+
+            DamageProcess();
+        }
+
+    }
+    bool ConditionCheck(Condition current, Condition target) {
+
+        return Convert.ToInt32(current & target) != 0;
+    }
+
+    void DisappearProcess() {
+
+        var nullCheck = disappear.Before?.Invoke(this.gameObject);
+
+        if (nullCheck == null) {
+
+            DisappearAfterProcess();
+        }
+        else {
+
+            nullCheck.OnComplete(DisappearAfterProcess);
+        }
+    }
+    void DisappearAfterProcess() {
+
+        this.gameObject.SetActive(false);
+        Collector.Add((this.gameObject, this));
+
+        disappear.After?.Invoke(this.gameObject);
+    }
+
+    void DamageProcess() {
+
+        var nullCheck = damage.Before?.Invoke(this.gameObject);
+
+        if (nullCheck == null) {
+
+            DamageAfterProcess();
+        }
+        else {
+
+            nullCheck.OnComplete(DamageAfterProcess);
+        }
+    }
+    void DamageAfterProcess() {
+
+        if(PlayerInnerData.Instance.Invincible.StartInvincible()) {
+
+            ShakeCamera.Instance.Shake(CAMERA_SHAKE_POWER, CAMERA_SHAKE_DURACTION)?.
+                OnComplete(() => damage.After?.Invoke(this.gameObject));
         }
     }
 }

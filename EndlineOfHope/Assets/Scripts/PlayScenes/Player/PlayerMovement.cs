@@ -48,6 +48,7 @@ public class PlayerMovement : MonoBehaviour {
     bool ableMoveHorizon = true;
     bool ableJump = false;
     Direction gravityDirection = Direction.NONE;
+
     Vector2 gravityForce = Vector2.zero;
 
     #endregion

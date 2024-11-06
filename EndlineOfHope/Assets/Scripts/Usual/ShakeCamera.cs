@@ -16,7 +16,7 @@ public class ShakeCamera: MonoBehaviour
         }
     }
 
-    public void Shake(float power, float duraction) {
+    public Tween Shake(float power, float duraction) {
 
         Vector3 origin = transform.localPosition;
 
@@ -25,6 +25,8 @@ public class ShakeCamera: MonoBehaviour
             current = transform.DOShakePosition(duraction, power)
                 .OnComplete(() => transform.localPosition = origin);
         }
+
+        return current;
     }
 
     /// <summary>
@@ -34,7 +36,7 @@ public class ShakeCamera: MonoBehaviour
     /// 
     /// <paramref name="power"/>: Animation dynamic poer
     /// </summary>
-    public void VShake(float power, float duraction) {
+    public Tween VShake(float power, float duraction) {
 
         Vector3 origin = transform.localPosition;
 
@@ -43,6 +45,8 @@ public class ShakeCamera: MonoBehaviour
             current = transform.DOShakePosition(duraction, Vector3.up * power)
                 .OnComplete(() => transform.localPosition = origin);
         }
+
+        return current;
     }
 
     /// <summary>
@@ -52,7 +56,7 @@ public class ShakeCamera: MonoBehaviour
     /// 
     /// <paramref name="power"/>: Animation dynamic poer
     /// </summary>
-    public void HShake(float power, float duraction) {
+    public Tween HShake(float power, float duraction) {
 
         Vector3 origin = transform.localPosition;
 
@@ -61,5 +65,7 @@ public class ShakeCamera: MonoBehaviour
             current = transform.DOShakePosition(duraction, Vector3.right * power)
                 .OnComplete(() => transform.localPosition = origin);
         }
+
+        return current;
     }
 }
